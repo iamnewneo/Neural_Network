@@ -14,13 +14,13 @@ class mlp:
 		self.outtype=outtype
 
 		#initialise network
-		self.weights1=(np.random.rand(self.nin+1,self.nhidden))
-		self.weights2=(np.random.rand(self.nhidden+1,self.nout))
+		self.weights1=(np.random.rand(self.nin+1,self.nhidden)-0.5)*2/np.sqrt(self.nin)
+		self.weights2=(np.random.rand(self.nhidden+1,self.nout)-0.5)*2/np.sqrt(self.nhidden)
 
 	def mlptrain(self,inputs,targets,eta,niterations):
 		#add the inputs that match the bias node
 		inputs = np.concatenate((inputs,-np.ones((self.ndata,1))),axis=1)
-		change=range(self.ndata)
+		change=list(range(self.ndata))
 		updatew1=np.zeros((np.shape(self.weights1)))
 		updatew2=np.zeros((np.shape(self.weights2)))
 
@@ -66,6 +66,22 @@ class mlp:
 		else:
 			print("Invalid outtype")
 
+	def earlystopping(self,inputs,targets,valid,validtargets,eta,niterations=100):
+		valid = np.concatenate((valid,-np.ones((np.shape(valid)[0],1))),axis=1)
+		old_val_error1 = 100002
+		old_val_error2 = 100001
+		new_val_error = 100000
+		count=0
+		while(((old_val_error1 - new_val_error)>0.001) or ((old_val_error2 - old_val_error1)>0.001)):
+			count+=1
+			print(count)
+			self.mlptrain(inputs,targets,eta,niterations)
+			old_val_error2 = old_val_error1
+			old_val_error1 = new_val_error
+			validout = self.mlpfwd(valid)
+			new_val_error = 0.5*np.sum((validtargets - validout)**2)
+		print("Stopped " + str(new_val_error) + ", "+ str(old_val_error1) + ", "+str(old_val_error2))
+
 	def confmat(self,inputs,targets):
 		inputs=np.concatenate((inputs,-np.ones((np.shape(inputs)[0],1))),axis=1)
 		outputs=self.mlpfwd(inputs)
@@ -84,4 +100,4 @@ class mlp:
 		print("Confusion matrix")
 		print(cm)
 		#np.trace gives sum about diagnol and np.sum gives sum of the matrix elements
-		print("Percentage correct "+str((np.trace(cm)	/np.sum(cm))*100))
+		print("Percentage correct "+str((np.trace(cm)/np.sum(cm))*100))
